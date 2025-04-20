@@ -13,6 +13,7 @@ class TheCoolerBot(commands.Bot):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         print('------')
         await self.load_extension("cogs.basic")
+        await self.load_extension("cogs.music")
 
 if __name__ == '__main__':
     bot = TheCoolerBot()
