@@ -58,7 +58,7 @@ class Music(commands.Cog):
         self.queues[guild_id].append(track)
     
     async def get_track_info(self, url):
-        '''Fetche metadata and audio stream URL from a YouTube URL without downloading.'''
+        '''Fetch metadata and audio stream URL from a YouTube URL without downloading.'''
         ydl_opts = {
             'format': 'bestaudio',
             'noplaylist': True
@@ -160,6 +160,63 @@ class Music(commands.Cog):
                 message += f"{i}. {track['title']}\n"
         
         await ctx.send(message)
+    
+    @commands.command()
+    async def skip(self, ctx):
+        if not await self.validate_voice(ctx, require_bot_connected=True):
+            return
+        
+        voice_client = ctx.voice_client
+
+        if not voice_client.is_playing():
+            await ctx.send("There's no music playing to skip. 😕")
+            return
+        
+        skipper = ctx.author.display_name
+        voice_client.stop()
+        await ctx.send(f"⏭️ **{skipper}** skipped the current song.")
+    
+    @commands.command()
+    async def pause(self, ctx):
+        if not await self.validate_voice(ctx, require_bot_connected=True):
+            return
+        
+        voice_client = ctx.voice_client
+
+        if not voice_client.is_playing():
+            await ctx.send("There's no music to pause. 😕")
+            return
+        
+        voice_client.pause()
+        await ctx.send(f"⏸️ Music paused by **{ctx.author.display_name}**.")
+    
+    @commands.command
+    async def resume(self, ctx):
+        if not await self.validate_voice(ctx, require_bot_connected=True):
+            return
+        
+        voice_client = ctx.voice_client
+
+        if not voice_client.is_paused():
+            await ctx.send("The music is not paused. 🤔")
+            return
+        
+        voice_client.resume()
+        await ctx.send(f"▶️ Music resumed by **{ctx.author.display_name}**.")
+    
+    @commands.command()
+    async def clear(self, ctx):
+        if not await self.validate_voice(ctx, require_bot_connected=True):
+            return
+        
+        guild_id = ctx.guild.id
+
+        if not self.queues.get(guild_id):
+            await ctx.send("The queue is already empty.")
+            return
+        
+        self.queues[guild_id].clear()
+        await ctx.send(f"🧹 Queue cleared by **{ctx.author.display_name}**.")
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
