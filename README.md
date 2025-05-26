@@ -107,7 +107,7 @@ TheCoolerBot/
 
 ### Instalation:
 ```bash
-git clone https://github.com/seu-usuario/TheCoolerBot.git
+git clone https://github.com/ThiagoMiiranda/TheCoolerBot.git
 cd TheCoolerBot
 python -m venv venv
 venv\Scripts\activate # Windows
