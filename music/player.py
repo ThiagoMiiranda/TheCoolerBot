@@ -1,6 +1,6 @@
 import asyncio
 import discord
-from music.extractor import get_track_info
+from music.extractor import get_track_info, get_playlist_progressively
 from music.queue_manager import QueueManager
 
 class MusicPlayer:
@@ -53,17 +53,45 @@ class MusicPlayer:
         guild_id = ctx.guild.id
         voice_client = ctx.voice_client
 
-        track = await get_track_info(ctx, url)
-        if not track:
+        # Detects if it is a playlist and use the progressive extraction
+        first_track, background_task = await get_playlist_progressively(ctx, url)
+
+        if first_track:
+            self.queue_manager.add_to_queue(guild_id, first_track)
+            if background_task:
+                asyncio.create_task(self._process_playlist(ctx, background_task))
+            
+            if not voice_client.is_playing():
+                await ctx.send(f"🎵 Let me see what we have here...")
+                await self.play_next(ctx)
+            else:
+                await ctx.send(f"Playlist received! First track added: **{first_track['title']}**")
+            return
+
+        # If it isn't a playlist, processes as a song as usual
+        tracks = await get_track_info(ctx, url)
+        if not tracks:
             await ctx.send("❌ Failed to fetch track info.")
             return
-        self.queue_manager.add_to_queue(guild_id, track)
+        
+        for track in tracks:
+            self.queue_manager.add_to_queue(guild_id, track)
 
         if not voice_client.is_playing():
-            await ctx.send("🎵 Let me see what we have here...")
+            await ctx.send(f"🎵 Let me see what we have here...")
             await self.play_next(ctx)
         else:
-            await ctx.send(f"🎶 Song added to queue: **{track['title']}**")
+            await ctx.send(f"🎶 Song added to queue: **{tracks[0]['title']}**")
+
+    async def _process_playlist(self, ctx, load_remaining_tracks):
+        '''Adds the remaining songs progressively'''
+        guild_id = ctx.guild.id
+        remaining_tracks = await load_remaining_tracks()
+
+        for track in remaining_tracks:
+            self.queue_manager.add_to_queue(guild_id, track)
+        
+        await ctx.send(f"✅ **{len(remaining_tracks)}** tracks added from the playlist!")
     
     async def skip(self, ctx):
         voice_client = ctx.voice_client
