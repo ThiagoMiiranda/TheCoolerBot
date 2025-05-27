@@ -29,6 +29,9 @@ class Music(commands.Cog):
             return
 
         voice_client = ctx.voice_client
+        guild_id = ctx.guild.id
+
+        await self.player.clear(guild_id)
         await voice_client.disconnect()
         await ctx.send(f"👋 Leaving **{voice_client.channel.name}**. Stay cool. 😎")
     

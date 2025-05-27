@@ -30,14 +30,20 @@ async def get_playlist_progressively(ctx, url: str):
     if not flat_entries:
         return None, None
     
-    first_entry = flat_entries.pop(0)
-    first_track = await loop.run_in_executor(None, _extract_info_sync, first_entry['url'])
-    first_track = {
-        'title': first_track.get('title'),
-        'webpage_url': first_track.get('webpage_url'),
-        'source_url': first_track.get('url'),
-        'requested_by': ctx.author.display_name
-    }
+    first_track = None
+    while flat_entries and first_track is None:
+        first_entry = flat_entries.pop(0)
+        try:
+            detailed_data = await loop.run_in_executor(None, _extract_info_sync, first_entry['url'])
+            first_track = {
+                'title': detailed_data.get('title'),
+                'webpage_url': detailed_data.get('webpage_url'),
+                'source_url': detailed_data.get('url'),
+                'requested_by': ctx.author.display_name
+            }
+        except Exception as e:
+            print(f"Error loading the first song from the playlist: {e}")
+            await ctx.send("A song from the start of the playlist was ignored (probably private or removed)")
 
     async def load_remaining_tracks():
         '''Load remaining songs in background.'''
