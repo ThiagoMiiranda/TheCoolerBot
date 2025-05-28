@@ -130,9 +130,10 @@ class MusicPlayer:
         # Remove the songs before the chosen index
         skipped = queue[:index - 1]
         self.queue_manager.queues[guild_id] = queue[index - 1:]
-        self.current[guild_id] = self.queue_manager.queues[guild_id][0]
 
         await ctx.send(f"⏭️ Skipping **{len(skipped)}** songs.")
 
-        if voice_client.is_playing():
+        if voice_client.is_playing() or voice_client.is_paused():
             voice_client.stop()
+        else:
+            await self.play_next(ctx)
