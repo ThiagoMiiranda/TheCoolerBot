@@ -132,6 +132,13 @@ class Music(commands.Cog):
         
         await self.player.clear(guild_id)
         await ctx.send(f"🧹 Queue cleared by **{ctx.author.display_name}**.")
+    
+    @commands.command()
+    async def skip_to(self, ctx, position: int):
+        if not await validate_voice(ctx, require_bot_connected=True):
+            return
+        
+        await self.player.skip_to(ctx, position)
 
 async def setup(bot):
     await bot.add_cog(Music(bot))

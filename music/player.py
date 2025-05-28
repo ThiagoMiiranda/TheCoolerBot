@@ -117,3 +117,22 @@ class MusicPlayer:
     
     def has_next(self, guild_id):
         return self.queue_manager.has_next(guild_id)
+
+    async def skip_to(self, ctx, index: int):
+        guild_id = ctx.guild.id
+        queue = self.queue_manager.get_queue(guild_id)
+        voice_client = ctx.voice_client
+
+        if index < 1 or index > len(queue):
+            await ctx.send(f"❌ Invalid position. The queue has {len(queue)} songs.")
+            return
+        
+        # Remove the songs before the chosen index
+        skipped = queue[:index - 1]
+        self.queue_manager.queues[guild_id] = queue[index - 1:]
+        self.current[guild_id] = self.queue_manager.queues[guild_id][0]
+
+        await ctx.send(f"⏭️ Skipping **{len(skipped)}** songs.")
+
+        if voice_client.is_playing():
+            voice_client.stop()
