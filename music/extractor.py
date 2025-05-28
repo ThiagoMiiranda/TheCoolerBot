@@ -1,5 +1,6 @@
 import yt_dlp
 import asyncio
+from utils.message import safe_send
 
 YTDL_OPTIONS = {
     'format': 'bestaudio/best',
@@ -43,7 +44,7 @@ async def get_playlist_progressively(ctx, url: str):
             }
         except Exception as e:
             print(f"Error loading the first song from the playlist: {e}")
-            await ctx.send("A song from the start of the playlist was ignored (probably private or removed)")
+            await safe_send(ctx, "A song from the start of the playlist was ignored (probably private or removed)")
 
     async def load_remaining_tracks():
         '''Load remaining songs in background.'''
@@ -65,10 +66,10 @@ async def get_playlist_progressively(ctx, url: str):
 
                 # Visual feedback of loading process
                 if len(tracks) % 5 == 0:
-                    await ctx.send(f"🎶 {len(tracks)} tracks added so far...")
+                    await safe_send(ctx, f"🎶 {len(tracks)} tracks added so far...")
             except Exception as e:
                 print(f"Error loading a song from the playlist: {e}")
-                await ctx.send("A song from the playlist was ignored (probably private or removed)")
+                await safe_send(ctx, "A song from the playlist was ignored (probably private or removed)")
                 continue
         return tracks
     

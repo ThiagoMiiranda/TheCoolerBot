@@ -2,6 +2,7 @@ import asyncio
 import discord
 from music.extractor import get_track_info, get_playlist_progressively
 from music.queue_manager import QueueManager
+from utils.message import safe_send
 
 class MusicPlayer:
     def __init__(self, bot):
@@ -16,7 +17,7 @@ class MusicPlayer:
 
         track = self.queue_manager.pop_next(guild_id)
         if not track:
-            await ctx.send("📭 The playlist is over. 😴")
+            await safe_send(ctx, "📭 The playlist is over. 😴")
             self.current[guild_id] = None
             return
         
@@ -30,7 +31,7 @@ class MusicPlayer:
         try:
             audio_source = await discord.FFmpegOpusAudio.from_probe(track['source_url'], **ffmpeg_options)
         except Exception as e:
-            await ctx.send(f"❌ Failed to play track.\n'''{e}'''")
+            await safe_send(ctx, f"❌ Failed to play track.\n'''{e}'''")
             return
         
         def after_playing(error):
@@ -43,11 +44,11 @@ class MusicPlayer:
                 print(f"Error playing next music: {e}")
         
         if not voice_client:
-            await ctx.send("The Cooler Bot isn't in a voice channel.")
+            await safe_send(ctx, "The Cooler Bot isn't in a voice channel.")
             return
         
         voice_client.play(audio_source, after=after_playing)
-        await ctx.send(f"▶️ Now playing: **{track['title']}**")
+        await safe_send(ctx, f"▶️ Now playing: **{track['title']}**")
     
     async def add_and_maybe_play(self, ctx, url: str):
         guild_id = ctx.guild.id
@@ -62,26 +63,26 @@ class MusicPlayer:
                 asyncio.create_task(self._process_playlist(ctx, background_task))
             
             if not voice_client.is_playing():
-                await ctx.send(f"🎵 Let me see what we have here...")
+                await safe_send(ctx, f"🎵 Let me see what we have here...")
                 await self.play_next(ctx)
             else:
-                await ctx.send(f"Playlist received! First track added: **{first_track['title']}**")
+                await safe_send(ctx, f"Playlist received! First track added: **{first_track['title']}**")
             return
 
         # If it isn't a playlist, processes as a song as usual
         tracks = await get_track_info(ctx, url)
         if not tracks:
-            await ctx.send("❌ Failed to fetch track info.")
+            await safe_send(ctx, "❌ Failed to fetch track info.")
             return
         
         for track in tracks:
             self.queue_manager.add_to_queue(guild_id, track)
 
         if not voice_client.is_playing():
-            await ctx.send(f"🎵 Let me see what we have here...")
+            await safe_send(ctx, f"🎵 Let me see what we have here...")
             await self.play_next(ctx)
         else:
-            await ctx.send(f"🎶 Song added to queue: **{tracks[0]['title']}**")
+            await safe_send(ctx, f"🎶 Song added to queue: **{tracks[0]['title']}**")
 
     async def _process_playlist(self, ctx, load_remaining_tracks):
         '''Adds the remaining songs progressively'''
@@ -91,7 +92,7 @@ class MusicPlayer:
         for track in remaining_tracks:
             self.queue_manager.add_to_queue(guild_id, track)
         
-        await ctx.send(f"✅ **{len(remaining_tracks)}** tracks added from the playlist!")
+        await safe_send(ctx, f"✅ **{len(remaining_tracks)}** tracks added from the playlist!")
     
     async def skip(self, ctx):
         voice_client = ctx.voice_client
@@ -124,14 +125,14 @@ class MusicPlayer:
         voice_client = ctx.voice_client
 
         if index < 1 or index > len(queue):
-            await ctx.send(f"❌ Invalid position. The queue has {len(queue)} songs.")
+            await safe_send(ctx, f"❌ Invalid position. The queue has {len(queue)} songs.")
             return
         
         # Remove the songs before the chosen index
         skipped = queue[:index - 1]
         self.queue_manager.queues[guild_id] = queue[index - 1:]
 
-        await ctx.send(f"⏭️ Skipping **{len(skipped)}** songs.")
+        await safe_send(ctx, f"⏭️ Skipping **{len(skipped)}** songs.")
 
         if voice_client.is_playing() or voice_client.is_paused():
             voice_client.stop()

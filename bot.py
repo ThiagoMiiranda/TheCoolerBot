@@ -9,11 +9,19 @@ class TheCoolerBot(commands.Bot):
 
         super().__init__(command_prefix='!', intents=intents)
     
+    async def setup_hook(self):
+        await self.load_extension("cogs.basic")
+        await self.load_extension("cogs.music")
+        
+        try:
+            synced = await self.tree.sync()
+            print(f"Synced {len(synced)} commands.")
+        except Exception as e:
+            print(f"Error syncing commands: {e}")
+
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         print('------')
-        await self.load_extension("cogs.basic")
-        await self.load_extension("cogs.music")
 
 if __name__ == '__main__':
     bot = TheCoolerBot()
