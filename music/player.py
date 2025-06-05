@@ -3,6 +3,8 @@ import discord
 from music.extractor import get_track_info, get_playlist_progressively
 from music.queue_manager import QueueManager
 from utils.message import safe_send
+from utils.embeds import now_playing_embed
+from utils.components import MusicControlView
 
 class MusicPlayer:
     def __init__(self, bot):
@@ -48,7 +50,10 @@ class MusicPlayer:
             return
         
         voice_client.play(audio_source, after=after_playing)
-        await safe_send(ctx, f"▶️ Now playing: **{track['title']}**")
+        
+        embed = now_playing_embed(track)
+        controls = MusicControlView(player=self, ctx=ctx)
+        await safe_send(ctx, embed=embed, view=controls)
     
     async def add_and_maybe_play(self, ctx, url: str):
         guild_id = ctx.guild.id
@@ -59,14 +64,19 @@ class MusicPlayer:
 
         if first_track:
             self.queue_manager.add_to_queue(guild_id, first_track)
+            
+            if not voice_client.is_playing():
+                # await safe_send(ctx, f"🎵 Let me see what we have here...")
+                await self.play_next(ctx)
+            
             if background_task:
                 asyncio.create_task(self._process_playlist(ctx, background_task))
             
-            if not voice_client.is_playing():
-                await safe_send(ctx, f"🎵 Let me see what we have here...")
+            '''if not voice_client.is_playing():
+                # await safe_send(ctx, f"🎵 Let me see what we have here...")
                 await self.play_next(ctx)
             else:
-                await safe_send(ctx, f"Playlist received! First track added: **{first_track['title']}**")
+                await safe_send(ctx, f"Playlist received! First track added: **{first_track['title']}**")'''
             return
 
         # If it isn't a playlist, processes as a song as usual
@@ -79,10 +89,16 @@ class MusicPlayer:
             self.queue_manager.add_to_queue(guild_id, track)
 
         if not voice_client.is_playing():
-            await safe_send(ctx, f"🎵 Let me see what we have here...")
             await self.play_next(ctx)
         else:
-            await safe_send(ctx, f"🎶 Song added to queue: **{tracks[0]['title']}**")
+            embed = discord.Embed(
+                title="🎶 Song added to queue",
+                description=f"[{tracks[0]['title']}]({tracks[0]['webpage_url']})",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="👤 Requested by", value=tracks[0].get('requested_by', 'Unknown'), inline=True)
+
+            await safe_send(ctx, embed=embed)
 
     async def _process_playlist(self, ctx, load_remaining_tracks):
         '''Adds the remaining songs progressively'''
@@ -91,8 +107,6 @@ class MusicPlayer:
 
         for track in remaining_tracks:
             self.queue_manager.add_to_queue(guild_id, track)
-        
-        await safe_send(ctx, f"✅ **{len(remaining_tracks)}** tracks added from the playlist!")
     
     async def skip(self, ctx):
         voice_client = ctx.voice_client

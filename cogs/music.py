@@ -2,6 +2,8 @@ from discord import app_commands
 from discord.ext import commands
 from utils.voice_validation import validate_voice
 from utils.message import safe_send
+from utils.embeds import queue_embed
+from utils.queue_paginator import QueuePaginator
 from music.player import MusicPlayer
 import discord
 
@@ -60,27 +62,16 @@ class Music(commands.Cog):
     
     @commands.hybrid_command(description="Show the current queue")
     async def queue(self, ctx: commands.Context):
-        guild_id = ctx.guild.id
-
-        now_playing = self.player.get_current(guild_id)
-        upcoming = self.player.get_queue(guild_id)
-
-        if not now_playing and not upcoming:
-            await safe_send(ctx, "📭 The queue is currently empty.")
-            return
-        
-        message = ""
-
-        if now_playing:
-            message += f"🎧 **Now playing:** {now_playing['title']}\n\n"
-        
-        if upcoming:
-            message += f"🎶 **Upcoming songs:**\n"
-            for i, track in enumerate(upcoming, start=1):
-                message += f"{i}. {track['title']} (added by {track['requested_by']})\n"
-        
         await ctx.defer()
-        await safe_send(ctx, message)
+        
+        guild_id = ctx.guild.id
+        current = self.player.get_current(guild_id)
+        queue = self.player.get_queue(guild_id)
+
+        embed = queue_embed(current, queue, page=1)
+        view = QueuePaginator(ctx, current, queue)
+        message = await safe_send(ctx, embed=embed, view=view)
+        view.message = message
     
     @commands.hybrid_command(description="Skip the current song")
     async def skip(self, ctx: commands.Context):

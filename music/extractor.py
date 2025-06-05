@@ -1,6 +1,8 @@
 import yt_dlp
 import asyncio
+import discord
 from utils.message import safe_send
+from utils.loading_bar import create_loading_bar
 
 YTDL_OPTIONS = {
     'format': 'bestaudio/best',
@@ -26,11 +28,21 @@ async def get_playlist_progressively(ctx, url: str):
         return None, None
     
     flat_entries = data['entries']
+    playlist_name = data.get('title', 'Unknown Playlist')
 
     # Empty playlist
     if not flat_entries:
         return None, None
     
+    embed = discord.Embed(
+        title=f"⏳ Loading Playlist: {playlist_name}",
+        description="",
+        color=discord.Color.blue()
+    )
+    embed.set_footer(text="Please wait while songs are being processed...")
+
+    message = await safe_send(ctx, embed=embed)
+
     first_track = None
     while flat_entries and first_track is None:
         first_entry = flat_entries.pop(0)
@@ -40,6 +52,7 @@ async def get_playlist_progressively(ctx, url: str):
                 'title': detailed_data.get('title'),
                 'webpage_url': detailed_data.get('webpage_url'),
                 'source_url': detailed_data.get('url'),
+                'thumbnail': detailed_data.get('thumbnail'),
                 'requested_by': ctx.author.display_name
             }
         except Exception as e:
@@ -49,6 +62,9 @@ async def get_playlist_progressively(ctx, url: str):
     async def load_remaining_tracks():
         '''Load remaining songs in background.'''
         tracks = []
+        total = len(flat_entries)
+        current = 0
+
         for entry in flat_entries:
             if not entry:
                 continue
@@ -59,18 +75,34 @@ async def get_playlist_progressively(ctx, url: str):
                     'title': detailed_data.get('title'),
                     'webpage_url': detailed_data.get('webpage_url'),
                     'source_url': detailed_data.get('url'),
+                    'thumbnail': detailed_data.get('thumbnail'),
                     'requested_by': ctx.author.display_name
                 }
 
                 tracks.append(track)
+                current += 1
 
                 # Visual feedback of loading process
-                if len(tracks) % 5 == 0:
-                    await safe_send(ctx, f"🎶 {len(tracks)} tracks added so far...")
+                if current % 5 == 0 or current == total:
+                    loading_bar = create_loading_bar(current, total)
+                    embed.description = (
+                        "⏳ Loading songs...\n"
+                        f"```{loading_bar}```"
+                        f"Tracks loaded: {current}/{total}"
+                    )
+                    await message.edit(embed=embed)
             except Exception as e:
                 print(f"Error loading a song from the playlist: {e}")
                 await safe_send(ctx, "A song from the playlist was ignored (probably private or removed)")
                 continue
+        
+        embed.title = f"✅ Playlist loaded: {playlist_name}"
+        embed.description = (
+            f"All songs have been loaded successfully!"
+        )
+        embed.set_footer(text=f"Total songs = {current + 1}")
+        await message.edit(embed=embed)
+        
         return tracks
     
     return first_track, load_remaining_tracks
@@ -96,6 +128,7 @@ async def get_track_info(ctx, url: str):
                 'title': detailed_data.get('title'),
                 'webpage_url': detailed_data.get('webpage_url'),
                 'source_url': detailed_data.get('url'),
+                'thumbnail': detailed_data.get('thumbnail'),
                 'requested_by': ctx.author.display_name
             }
             tracks.append(track)
@@ -106,6 +139,7 @@ async def get_track_info(ctx, url: str):
         'title': data.get('title'),
         'webpage_url': data.get('webpage_url'),
         'source_url': data.get('url'),
+        'thumbnail': data.get('thumbnail'),
         'requested_by': ctx.author.display_name
     }
     return [track]
