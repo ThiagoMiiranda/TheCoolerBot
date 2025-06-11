@@ -59,7 +59,7 @@ async def get_playlist_progressively(ctx, url: str):
             print(f"Error loading the first song from the playlist: {e}")
             await safe_send(ctx, "A song from the start of the playlist was ignored (probably private or removed)")
 
-    async def load_remaining_tracks():
+    async def load_remaining_tracks(on_track_loaded=None):
         '''Load remaining songs in background.'''
         tracks = []
         total = len(flat_entries)
@@ -79,7 +79,9 @@ async def get_playlist_progressively(ctx, url: str):
                     'requested_by': ctx.author.display_name
                 }
 
-                tracks.append(track)
+                if on_track_loaded:
+                    await on_track_loaded(track)
+                
                 current += 1
 
                 # Visual feedback of loading process

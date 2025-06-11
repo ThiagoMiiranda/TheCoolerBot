@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import random
 from music.extractor import get_track_info, get_playlist_progressively
 from music.queue_manager import QueueManager
 from utils.message import safe_send
@@ -66,17 +67,14 @@ class MusicPlayer:
             self.queue_manager.add_to_queue(guild_id, first_track)
             
             if not voice_client.is_playing():
-                # await safe_send(ctx, f"🎵 Let me see what we have here...")
                 await self.play_next(ctx)
             
             if background_task:
-                asyncio.create_task(self._process_playlist(ctx, background_task))
+                async def on_track_loaded(track):
+                    self.queue_manager.add_to_queue(guild_id, track)
+                
+                asyncio.create_task(background_task(on_track_loaded))
             
-            '''if not voice_client.is_playing():
-                # await safe_send(ctx, f"🎵 Let me see what we have here...")
-                await self.play_next(ctx)
-            else:
-                await safe_send(ctx, f"Playlist received! First track added: **{first_track['title']}**")'''
             return
 
         # If it isn't a playlist, processes as a song as usual
@@ -99,14 +97,6 @@ class MusicPlayer:
             embed.add_field(name="👤 Requested by", value=tracks[0].get('requested_by', 'Unknown'), inline=True)
 
             await safe_send(ctx, embed=embed)
-
-    async def _process_playlist(self, ctx, load_remaining_tracks):
-        '''Adds the remaining songs progressively'''
-        guild_id = ctx.guild.id
-        remaining_tracks = await load_remaining_tracks()
-
-        for track in remaining_tracks:
-            self.queue_manager.add_to_queue(guild_id, track)
     
     async def skip(self, ctx):
         voice_client = ctx.voice_client
@@ -152,3 +142,6 @@ class MusicPlayer:
             voice_client.stop()
         else:
             await self.play_next(ctx)
+    
+    async def shuffle(self, guild_id):
+        random.shuffle(self.queue_manager.queues[guild_id])

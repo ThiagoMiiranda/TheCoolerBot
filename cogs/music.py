@@ -139,5 +139,20 @@ class Music(commands.Cog):
         await ctx.defer()
         await self.player.skip_to(ctx, position)
 
+    @commands.hybrid_command(description="Shuffles the queue")
+    async def shuffle(self, ctx: commands.Context):
+        if not await validate_voice(ctx, require_bot_connected=True):
+            return
+        
+        guild_id = ctx.guild.id
+
+        if not self.player.has_next(guild_id):
+            await safe_send(ctx, "The queue is empty. Can't be shuffled.")
+            return
+
+        await self.player.shuffle(guild_id)
+        queue_size = len(self.player.get_queue(guild_id))
+        await safe_send(ctx, f"🔀 Shuffled **{queue_size}** songs.")
+
 async def setup(bot):
     await bot.add_cog(Music(bot))
