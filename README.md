@@ -90,8 +90,6 @@ TheCoolerBot/
 
 ## 🌟 **Next Features (In Development)**
 
-- 🎨 **Beautiful and informative embeds** for commands
-- 🔥 **Slash commands** (with autocomplete, description and modern organization)
 - 🌐 **Cloud hosting**, to stay online 24/7 (probably using Render, Railway or another platform)
 - 🔍 **Search by name**, no need to pass on links
 - 📝 **Logs and metrics system** (perhaps with Sentry, Loguru, or Prometheus + Grafana in the future)

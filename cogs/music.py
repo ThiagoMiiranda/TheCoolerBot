@@ -67,9 +67,10 @@ class Music(commands.Cog):
         guild_id = ctx.guild.id
         current = self.player.get_current(guild_id)
         queue = self.player.get_queue(guild_id)
+        player = self.player
 
         embed = queue_embed(current, queue, page=1)
-        view = QueuePaginator(ctx, current, queue)
+        view = QueuePaginator(ctx, current, queue, player)
         message = await safe_send(ctx, embed=embed, view=view)
         view.message = message
     
