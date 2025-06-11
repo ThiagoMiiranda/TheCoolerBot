@@ -145,14 +145,14 @@ class Music(commands.Cog):
             return
         
         guild_id = ctx.guild.id
+        queue = self.player.get_queue(guild_id)
 
-        if not self.player.has_next(guild_id):
-            await safe_send(ctx, "The queue is empty. Can't be shuffled.")
+        if not queue or len(queue) < 2:
+            await safe_send(ctx, "The queue needs at least 2 songs to be shuffled.")
             return
 
         await self.player.shuffle(guild_id)
-        queue_size = len(self.player.get_queue(guild_id))
-        await safe_send(ctx, f"🔀 Shuffled **{queue_size}** songs.")
+        await safe_send(ctx, f"🔀 Shuffled **{len(queue)}** songs.")
 
 async def setup(bot):
     await bot.add_cog(Music(bot))

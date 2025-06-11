@@ -144,4 +144,6 @@ class MusicPlayer:
             await self.play_next(ctx)
     
     async def shuffle(self, guild_id):
-        random.shuffle(self.queue_manager.queues[guild_id])
+        queue = self.queue_manager.queues.get(guild_id)
+        if queue:
+            random.shuffle(queue)
